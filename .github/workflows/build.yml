@@ -380,13 +380,14 @@ jobs:
           name: dist
           path: target/legerix*
 
-  # ----- GitHub release upload (tag-driven only) ----------------------------
-  # On non-tag runs, the fat jar + per-platform natives are still available as
-  # workflow artifacts (uploaded by build_dist and the per-platform jobs), so a
-  # GitHub Release is not needed to retrieve them during development.
+  # ----- GitHub release upload ----------------------------------------------
+  # Runs on every workflow trigger (tag push or manual dispatch). The release
+  # tag is derived from the pom version (e.g. "v5.5.0-1"). If the release
+  # already exists, assets are uploaded with --clobber so re-runs overwrite
+  # the previous artifacts in place rather than creating a duplicate release.
+  # Same pattern as Apertix.
   release:
     needs: build_dist
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
