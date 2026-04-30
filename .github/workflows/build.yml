@@ -1,8 +1,9 @@
-name: Build, Release and Publish Legerix
-# Modeled on julienmerconsulting/Apertix build-release-publish.yml.
+name: Build and Release Legerix
 # 7-job matrix: linux x64 modern + legacy, linux aarch64 modern + legacy,
 # macOS x64, macOS aarch64, Windows x64. Final job assembles the fat jar
-# and deploys to Maven Central.
+# and attaches the jar + every native to a GitHub Release on tagged builds.
+# Maven Central publication is intentionally NOT wired here; use the
+# manual "Publish to Maven Central" workflow when the time comes.
 
 on:
   workflow_dispatch:
@@ -305,7 +306,7 @@ jobs:
           name: win32-x86-64
           path: out/
 
-  # ----- Final job: assemble + deploy to Maven Central ----------------------
+  # ----- Final job: assemble fat jar (no Maven Central deploy) --------------
   build_dist:
     needs:
       - build_linux_x64
@@ -323,11 +324,6 @@ jobs:
         with:
           java-version: 17
           distribution: temurin
-          server-id: central
-          server-username: CENTRAL_USERNAME
-          server-password: CENTRAL_PASSWORD
-          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: GPG_PASSPHRASE
 
       - name: Get Version Info
         run: |
@@ -376,16 +372,7 @@ jobs:
           test -f src/main/resources/tessdata/eng.traineddata
           echo "OK"
 
-      - name: Build, Test and Deploy to Maven Central
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: mvn -B deploy -P release
-        env:
-          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
-          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: Build only (non-tag runs)
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+      - name: Build and test
         run: mvn -B install
 
       - uses: actions/upload-artifact@v4
@@ -393,7 +380,10 @@ jobs:
           name: dist
           path: target/legerix*
 
-  # ----- GitHub release upload (tag-driven) ---------------------------------
+  # ----- GitHub release upload (tag-driven only) ----------------------------
+  # On non-tag runs, the fat jar + per-platform natives are still available as
+  # workflow artifacts (uploaded by build_dist and the per-platform jobs), so a
+  # GitHub Release is not needed to retrieve them during development.
   release:
     needs: build_dist
     if: startsWith(github.ref, 'refs/tags/v')
@@ -420,12 +410,30 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           mkdir -p release-assets
-          cp dist/legerix-${VERSION}.jar release-assets/ || cp dist/*.jar release-assets/
-          for d in linux-x86-64 linux-x86-64-legacy linux-aarch64 linux-aarch64-legacy darwin darwin-aarch64 win32-x86-64; do
-            for f in "$d"/*; do
-              [ -f "$f" ] && cp "$f" "release-assets/$(basename "$f").$d" || true
-            done
-          done
+
+          # Fat jar (contains every platform's natives + tessdata).
+          cp dist/legerix-${VERSION}.jar release-assets/
+
+          # Raw natives, one file per platform per lib, suffixed with the
+          # platform tag in the basename. Same convention as Apertix.
+          # Linux .so
+          cp linux-x86-64/libtesseract.so.5         release-assets/libtesseract.so.5-linux-x86-64
+          cp linux-x86-64/libleptonica.so.6         release-assets/libleptonica.so.6-linux-x86-64
+          cp linux-x86-64-legacy/libtesseract.so.5  release-assets/libtesseract.so.5-linux-x86-64-legacy
+          cp linux-x86-64-legacy/libleptonica.so.6  release-assets/libleptonica.so.6-linux-x86-64-legacy
+          cp linux-aarch64/libtesseract.so.5        release-assets/libtesseract.so.5-linux-aarch64
+          cp linux-aarch64/libleptonica.so.6        release-assets/libleptonica.so.6-linux-aarch64
+          cp linux-aarch64-legacy/libtesseract.so.5 release-assets/libtesseract.so.5-linux-aarch64-legacy
+          cp linux-aarch64-legacy/libleptonica.so.6 release-assets/libleptonica.so.6-linux-aarch64-legacy
+          # macOS .dylib
+          cp darwin/libtesseract.5.dylib            release-assets/libtesseract.5-darwin.dylib
+          cp darwin/libleptonica.6.dylib            release-assets/libleptonica.6-darwin.dylib
+          cp darwin-aarch64/libtesseract.5.dylib    release-assets/libtesseract.5-darwin-aarch64.dylib
+          cp darwin-aarch64/libleptonica.6.dylib    release-assets/libleptonica.6-darwin-aarch64.dylib
+          # Windows .dll  (vcpkg names: tesseract55.dll, leptonica-1.85.0.dll)
+          cp win32-x86-64/tesseract*.dll            release-assets/tesseract-win-x86-64.dll
+          cp win32-x86-64/leptonica-*.dll           release-assets/leptonica-win-x86-64.dll
+
           ls -lh release-assets/
 
       - name: Create release if needed
