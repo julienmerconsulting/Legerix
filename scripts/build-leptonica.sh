@@ -2,11 +2,11 @@
 # Build Leptonica from source.
 #
 # Usage:  build-leptonica.sh <version> <install-prefix>
-# Example: build-leptonica.sh 1.85.0 /tmp/legerix-prefix
+# Example: build-leptonica.sh 1.87.0 /tmp/legerix-prefix
 
 set -euo pipefail
 
-VERSION="${1:?leptonica version required, e.g. 1.85.0}"
+VERSION="${1:?leptonica version required, e.g. 1.87.0}"
 PREFIX="${2:?install prefix required, e.g. /tmp/legerix-prefix}"
 
 WORKDIR="$(mktemp -d)"

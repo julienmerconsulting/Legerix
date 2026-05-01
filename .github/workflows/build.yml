@@ -451,7 +451,7 @@ jobs:
           cp darwin/libleptonica.6.dylib            release-assets/libleptonica.6-darwin.dylib
           cp darwin-aarch64/libtesseract.5.dylib    release-assets/libtesseract.5-darwin-aarch64.dylib
           cp darwin-aarch64/libleptonica.6.dylib    release-assets/libleptonica.6-darwin-aarch64.dylib
-          # Windows .dll  (vcpkg names: tesseract55.dll, leptonica-1.85.0.dll)
+          # Windows .dll  (vcpkg names: tesseract55.dll, leptonica-X.Y.Z.dll)
           cp win32-x86-64/tesseract*.dll            release-assets/tesseract-win-x86-64.dll
           cp win32-x86-64/leptonica-*.dll           release-assets/leptonica-win-x86-64.dll
 

@@ -25,10 +25,10 @@ LICENSE).
 ------------------------------------------------------------------------
 
    Source       : https://github.com/DanBloomberg/leptonica
-   Version      : 1.85.0
+   Version      : 1.87.0
    Files        : libleptonica.so.6 (Linux x86_64 + aarch64, modern + legacy)
                   libleptonica.6.dylib (macOS x86_64 + aarch64)
-                  leptonica-1.85.0.dll (Windows x86_64)
+                  leptonica-1.87.0.dll (Windows x86_64)
    License      : BSD 2-Clause "Simplified" License
    License URL  : https://opensource.org/licenses/BSD-2-Clause
    Copyright    : (c) 2001-2025 Dan Bloomberg and contributors

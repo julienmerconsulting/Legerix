@@ -23,4 +23,10 @@ in the form `<tesseract-version>-<build>`.
 
 ## [5.5.0-1] - TBD
 
-First release. Tesseract 5.5.0 + Leptonica 1.85.0 bundled.
+First release. Tesseract 5.5.0 + Leptonica 1.87.0 bundled.
+
+Why leptonica 1.87.0 and not 1.85.0: tesseract 5.5.0 calls
+`pixFindBaselinesGen` which was added to leptonica between 1.85 and
+1.86. Building against 1.85.0 produces a runtime
+`undefined symbol: pixFindBaselinesGen` error — the same class of
+mismatch that originally motivated Legerix.

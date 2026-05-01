@@ -86,7 +86,7 @@ The natives are produced by GitHub Actions (`.github/workflows/build.yml`,
 ```bash
 PREFIX="$PWD/_prefix"
 mkdir -p "$PREFIX"
-./scripts/build-leptonica.sh 1.85.0 "$PREFIX"
+./scripts/build-leptonica.sh 1.87.0 "$PREFIX"
 ./scripts/build-tesseract.sh 5.5.0  "$PREFIX"
 ./scripts/fetch-traineddata.sh src/main/resources/tessdata
 

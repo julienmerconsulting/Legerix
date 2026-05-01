@@ -207,7 +207,11 @@ public final class Legerix {
             case OSX:
                 return Arrays.asList("libleptonica.6.dylib", "libtesseract.5.dylib");
             case WINDOWS:
-                return Arrays.asList("leptonica-1.85.0.dll", "tesseract55.dll");
+                // Leptonica DLL on Windows is named leptonica-<version>.dll
+                // by vcpkg, where <version> tracks whatever leptonica vcpkg
+                // ships at build time. We don't pin it here because vcpkg
+                // controls that version independently.
+                return Arrays.asList("leptonica-1.87.0.dll", "tesseract55.dll");
             default:
                 throw new UnsupportedOperationException("Unsupported OS: " + os);
         }
