@@ -15,7 +15,7 @@ in 5.5.x.
 
 ```xml
 <dependency>
-    <groupId>io.github.julienmerconsulting</groupId>
+    <groupId>io.github.oculix-org</groupId>
     <artifactId>legerix</artifactId>
     <version>5.5.0-1</version>
 </dependency>
@@ -68,6 +68,51 @@ tess.setDatapath(Legerix.getTessdataPath().toString());
 tess.setLanguage("eng");
 String text = tess.doOCR(image);
 ```
+
+## Languages / tessdata
+
+**Only `eng.traineddata` (English, fast model, ~4 MB) is bundled in the jar.**
+This is a deliberate trade-off: shipping every language pack would inflate the
+artifact past 100 MB, and most consumers only need a few specific languages.
+
+If you need any other language (French, German, Spanish, multi-language, etc.),
+you have to provide the corresponding `*.traineddata` files yourself. Two
+approaches:
+
+### A. Override the datapath entirely (recommended)
+
+Download the languages you need from the upstream repos
+([tessdata\_fast](https://github.com/tesseract-ocr/tessdata_fast) for speed,
+[tessdata\_best](https://github.com/tesseract-ocr/tessdata_best) for accuracy)
+into your own folder, then point tess4j there instead of `getTessdataPath()`:
+
+```java
+Legerix.loadNatives();
+ITesseract tess = new Tesseract();
+tess.setDatapath("/opt/myapp/tessdata"); // contains fra.traineddata, deu.traineddata, ...
+tess.setLanguage("fra");                 // or "fra+eng" for combined
+String text = tess.doOCR(image);
+```
+
+### B. Drop extra `.traineddata` next to the bundled `eng.traineddata`
+
+`Legerix.getTessdataPath()` returns a writable per-user cache directory (e.g.
+`~/.cache/legerix/5.5.0/tessdata/` on Linux,
+`%LOCALAPPDATA%\legerix\5.5.0\tessdata\` on Windows). You can drop additional
+language files there at install time, then keep using `getTessdataPath()`:
+
+```java
+Path tessdata = Legerix.getTessdataPath();
+// Download fra.traineddata to tessdata.resolve("fra.traineddata") on first run, then:
+ITesseract tess = new Tesseract();
+tess.setDatapath(tessdata.toString());
+tess.setLanguage("fra");
+```
+
+A future release may add a helper like `Legerix.installLanguage("fra")` that
+downloads on-demand and caches. Until then, language management is the
+consumer's responsibility — Legerix only guarantees that English works
+out-of-the-box.
 
 ## Glibc tier picker
 
