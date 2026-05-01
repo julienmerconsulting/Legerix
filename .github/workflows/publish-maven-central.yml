@@ -1,7 +1,8 @@
 name: Publish to Maven Central
-# Manual fallback. Same logic as the deploy step in build.yml, but standalone
-# so a release can be re-published without re-running the full native matrix
-# (assumes natives are already staged in the working tree).
+# Manual workflow that re-publishes an already-shipped GitHub release to
+# Maven Central. Natives are downloaded from the GitHub release whose tag
+# matches the current pom version (e.g. pom 5.5.0-1 -> tag v5.5.0-1) and
+# staged into src/main/resources/<layout>/ before `mvn deploy`.
 
 on:
   workflow_dispatch:
@@ -24,6 +25,60 @@ jobs:
           server-password: CENTRAL_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Resolve release tag from pom version
+        run: |
+          VERSION=$(mvn -B -q help:evaluate -Dexpression=project.version -DforceStdout)
+          echo "POM_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=v$VERSION" >> "$GITHUB_ENV"
+
+      - name: Download natives from GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p assets
+          gh release download "$RELEASE_TAG" --dir assets --pattern '*.so.*' --pattern '*.dylib' --pattern '*.dll'
+          ls -la assets/
+
+      - name: Stage natives into src/main/resources
+        run: |
+          mkdir -p src/main/resources/linux-x86-64 \
+                   src/main/resources/linux-x86-64-legacy \
+                   src/main/resources/linux-aarch64 \
+                   src/main/resources/linux-aarch64-legacy \
+                   src/main/resources/darwin \
+                   src/main/resources/darwin-aarch64 \
+                   src/main/resources/win32-x86-64
+
+          cp assets/libtesseract.so.5-linux-x86-64           src/main/resources/linux-x86-64/libtesseract.so.5
+          cp assets/libleptonica.so.6-linux-x86-64           src/main/resources/linux-x86-64/libleptonica.so.6
+          cp assets/libtesseract.so.5-linux-x86-64-legacy    src/main/resources/linux-x86-64-legacy/libtesseract.so.5
+          cp assets/libleptonica.so.6-linux-x86-64-legacy    src/main/resources/linux-x86-64-legacy/libleptonica.so.6
+          cp assets/libtesseract.so.5-linux-aarch64          src/main/resources/linux-aarch64/libtesseract.so.5
+          cp assets/libleptonica.so.6-linux-aarch64          src/main/resources/linux-aarch64/libleptonica.so.6
+          cp assets/libtesseract.so.5-linux-aarch64-legacy   src/main/resources/linux-aarch64-legacy/libtesseract.so.5
+          cp assets/libleptonica.so.6-linux-aarch64-legacy   src/main/resources/linux-aarch64-legacy/libleptonica.so.6
+          cp assets/libtesseract.5-darwin.dylib              src/main/resources/darwin/libtesseract.5.dylib
+          cp assets/libleptonica.6-darwin.dylib              src/main/resources/darwin/libleptonica.6.dylib
+          cp assets/libtesseract.5-darwin-aarch64.dylib      src/main/resources/darwin-aarch64/libtesseract.5.dylib
+          cp assets/libleptonica.6-darwin-aarch64.dylib      src/main/resources/darwin-aarch64/libleptonica.6.dylib
+          cp assets/tesseract-win-x86-64.dll                 src/main/resources/win32-x86-64/tesseract55.dll
+          cp assets/leptonica-win-x86-64.dll                 src/main/resources/win32-x86-64/leptonica-1.87.0.dll
+
+      - name: Fetch eng.traineddata
+        run: ./scripts/fetch-traineddata.sh src/main/resources/tessdata
+
+      - name: Verify staged payload
+        run: |
+          echo "=== Natives staged ==="
+          find src/main/resources -type f \( -name "*.so*" -o -name "*.dylib" -o -name "*.dll" \) | sort
+          COUNT=$(find src/main/resources -type f \( -name "*.so*" -o -name "*.dylib" -o -name "*.dll" \) | wc -l)
+          if [ "$COUNT" -ne 14 ]; then
+            echo "ERROR: expected 14 natives, found $COUNT"
+            exit 1
+          fi
+          test -f src/main/resources/tessdata/eng.traineddata
+          echo "OK: 14 natives + tessdata/eng.traineddata"
 
       - name: Publish to Maven Central
         run: mvn -B deploy -P release -DskipTests
