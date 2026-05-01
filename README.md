@@ -145,16 +145,6 @@ mvn -B install
 CI is the source of truth for cross-platform builds; local builds populate
 only the current host's resource directory.
 
-## Release process
-
-1. Bump `<version>` in `pom.xml` (e.g. `5.5.1-1`).
-2. Tag and push: `git tag v5.5.1-1 && git push origin v5.5.1-1`.
-3. The `build.yml` workflow runs the 7-job matrix and, on tagged runs,
-   deploys to Maven Central via the `release` profile and creates a GitHub
-   release with all natives attached.
-4. Required secrets in the repo: `CENTRAL_USERNAME`, `CENTRAL_PASSWORD`,
-   `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE`.
-
 ## License
 
 [MIT](LICENSE) for Legerix itself. Bundled natives keep their upstream
