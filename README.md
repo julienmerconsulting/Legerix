@@ -36,7 +36,7 @@ upstream release resets the build to `1`.
 | `darwin/`                             | macOS x86\_64                          |
 | `darwin-aarch64/`                     | macOS Apple Silicon                    |
 | `win32-x86-64/`                       | Windows x86\_64 (vcpkg toolchain)      |
-| `tessdata/eng.traineddata`            | English fast model (~2.5 MB)           |
+| `tessdata/*.traineddata`              | 5 bundled fast models, ~12 MB total (see below) |
 | `io/github/julienmerconsulting/legerix/Legerix.class` | Java loader               |
 
 Each platform directory contains both `libtesseract` and `libleptonica`.
@@ -71,48 +71,67 @@ String text = tess.doOCR(image);
 
 ## Languages / tessdata
 
-**Only `eng.traineddata` (English, fast model, ~4 MB) is bundled in the jar.**
-This is a deliberate trade-off: shipping every language pack would inflate the
-artifact past 100 MB, and most consumers only need a few specific languages.
+Five lightweight `tessdata_fast` language models are bundled in the jar
+(~12 MB total), chosen to cover roughly 80% of the world's population by
+primary spoken language:
 
-If you need any other language (French, German, Spanish, multi-language, etc.),
-you have to provide the corresponding `*.traineddata` files yourself. Two
-approaches:
+| Code      | Language            | Approx. size |
+| --------- | ------------------- | ------------ |
+| `eng`     | English             | ~4 MB        |
+| `fra`     | French              | ~1.1 MB      |
+| `spa`     | Spanish             | ~1 MB        |
+| `chi_sim` | Simplified Chinese  | ~3 MB        |
+| `hin`     | Hindi               | ~3.2 MB      |
 
-### A. Override the datapath entirely (recommended)
+All five are `tessdata_fast` (LSTM-only, optimized for speed) — the same
+trade-off Tesseract makes for its mobile / embedded targets. For higher
+accuracy at the cost of size and latency, swap them out with
+`tessdata_best` from upstream.
 
-Download the languages you need from the upstream repos
-([tessdata\_fast](https://github.com/tesseract-ocr/tessdata_fast) for speed,
-[tessdata\_best](https://github.com/tesseract-ocr/tessdata_best) for accuracy)
-into your own folder, then point tess4j there instead of `getTessdataPath()`:
+Available programmatically via `Legerix.BUNDLED_LANGUAGES`.
+
+### Using a bundled language
 
 ```java
 Legerix.loadNatives();
 ITesseract tess = new Tesseract();
-tess.setDatapath("/opt/myapp/tessdata"); // contains fra.traineddata, deu.traineddata, ...
-tess.setLanguage("fra");                 // or "fra+eng" for combined
+tess.setDatapath(Legerix.getTessdataPath().toString());
+tess.setLanguage("fra");                 // or "eng+fra" for combined
 String text = tess.doOCR(image);
 ```
 
-### B. Drop extra `.traineddata` next to the bundled `eng.traineddata`
+### Adding more languages
 
-`Legerix.getTessdataPath()` returns a writable per-user cache directory (e.g.
-`~/.cache/legerix/5.5.0/tessdata/` on Linux,
-`%LOCALAPPDATA%\legerix\5.5.0\tessdata\` on Windows). You can drop additional
-language files there at install time, then keep using `getTessdataPath()`:
+If you need a language outside the bundled set (German, Japanese, Arabic,
+multi-language combinations, etc.), drop the corresponding `*.traineddata`
+file into the same cache directory that `getTessdataPath()` returns, then
+keep using it as the datapath:
 
 ```java
 Path tessdata = Legerix.getTessdataPath();
-// Download fra.traineddata to tessdata.resolve("fra.traineddata") on first run, then:
+// On first run: download deu.traineddata into tessdata.resolve("deu.traineddata").
+// (Get it from https://github.com/tesseract-ocr/tessdata_fast or tessdata_best.)
 ITesseract tess = new Tesseract();
 tess.setDatapath(tessdata.toString());
-tess.setLanguage("fra");
+tess.setLanguage("deu");
 ```
 
-A future release may add a helper like `Legerix.installLanguage("fra")` that
-downloads on-demand and caches. Until then, language management is the
-consumer's responsibility — Legerix only guarantees that English works
-out-of-the-box.
+The cache directory is writable and persistent
+(`~/.cache/legerix/5.5.0/tessdata/` on Linux,
+`%LOCALAPPDATA%\legerix\5.5.0\tessdata\` on Windows).
+
+Alternatively, point tess4j at a completely separate `tessdata` folder you
+control:
+
+```java
+Legerix.loadNatives();
+ITesseract tess = new Tesseract();
+tess.setDatapath("/opt/myapp/tessdata");
+tess.setLanguage("ara");
+```
+
+A future release may add a helper like `Legerix.installLanguage("deu")`
+that downloads on-demand and caches.
 
 ## Glibc tier picker
 
