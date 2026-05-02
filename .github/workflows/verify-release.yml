@@ -99,9 +99,9 @@ jobs:
           ls -la target/legerix-*.jar target/legerix-*.jar.asc 2>/dev/null || true
           echo "=== Natives + tessdata inside the jar ==="
           unzip -l "$JAR" | grep -E '\.(so|dll|dylib|traineddata)' | sort
-          UNIX_PAYLOAD=$(unzip -l "$JAR" | grep -E '/(linux|darwin)[^/]*/[^/]+\.(so\.|dylib)' | wc -l)
-          WIN_PAYLOAD=$(unzip -l "$JAR" | grep -E '/win32-x86-64/[^/]+\.dll$' | wc -l)
-          TRAINED_PAYLOAD=$(unzip -l "$JAR" | grep -E '/tessdata/[^/]+\.traineddata$' | wc -l)
+          UNIX_PAYLOAD=$(unzip -l "$JAR" | grep -E '(^|[[:space:]])(linux|darwin)[^/]*/[^/]+\.(so\.|dylib)' | wc -l)
+          WIN_PAYLOAD=$(unzip -l "$JAR" | grep -E '(^|[[:space:]])win32-x86-64/[^/]+\.dll$' | wc -l)
+          TRAINED_PAYLOAD=$(unzip -l "$JAR" | grep -E '(^|[[:space:]])tessdata/[^/]+\.traineddata$' | wc -l)
           echo "Payload: $UNIX_PAYLOAD Linux+macOS natives, $WIN_PAYLOAD Windows DLLs, $TRAINED_PAYLOAD traineddata"
           if [ "$UNIX_PAYLOAD" -ne 12 ] || [ "$WIN_PAYLOAD" -lt 2 ] || [ "$TRAINED_PAYLOAD" -ne 5 ]; then
             echo "ERROR: jar payload mismatch"
