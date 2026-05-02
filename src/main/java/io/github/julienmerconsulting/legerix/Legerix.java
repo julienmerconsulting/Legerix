@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -112,6 +113,16 @@ public final class Legerix {
         }
     }
 
+    /**
+     * Lightweight Tesseract {@code tessdata_fast} language models bundled in
+     * the artifact. Covers approximately 80% of the world population by
+     * primary spoken language: English, French, Spanish, Simplified Chinese
+     * and Hindi. Consumers wanting other languages should drop additional
+     * {@code *.traineddata} files alongside these in {@link #getTessdataPath()}.
+     */
+    public static final List<String> BUNDLED_LANGUAGES =
+            Collections.unmodifiableList(Arrays.asList("eng", "fra", "spa", "chi_sim", "hin"));
+
     /** Cached, idempotent extraction directory. */
     private static volatile Path extractionDir;
     private static volatile String detectedTier;
@@ -128,9 +139,10 @@ public final class Legerix {
      * automatically by inspecting {@code ldd --version}. On macOS and Windows
      * the only available variant is used.
      *
-     * <p>The {@code tessdata/eng.traineddata} file shipped in the artifact is
-     * also extracted alongside the natives so that {@link #getTessdataPath()}
-     * can be passed directly to a Tesseract API.
+     * <p>The lightweight {@code tessdata_fast} language models shipped in the
+     * artifact (see {@link #BUNDLED_LANGUAGES}) are also extracted alongside
+     * the natives so that {@link #getTessdataPath()} can be passed directly
+     * to a Tesseract API.
      *
      * @return the absolute path to the directory where the natives have been
      *         extracted (already loaded into the JVM)
@@ -156,10 +168,16 @@ public final class Legerix {
             extractIfMissing(resourceDir + "/" + lib, target.resolve(lib));
         }
 
-        // tessdata
+        // tessdata: bundled lightweight (tessdata_fast) language models covering
+        // ~80% of the world population. Consumers wanting other languages can
+        // drop additional *.traineddata files alongside these in the same
+        // cache directory (see getTessdataPath()).
         final Path tessdataDir = cacheDir().resolve(getTesseractVersion()).resolve("tessdata");
         Files.createDirectories(tessdataDir);
-        extractIfMissing("tessdata/eng.traineddata", tessdataDir.resolve("eng.traineddata"));
+        for (final String lang : BUNDLED_LANGUAGES) {
+            extractIfMissing("tessdata/" + lang + ".traineddata",
+                    tessdataDir.resolve(lang + ".traineddata"));
+        }
 
         // Make JNA find OUR libs by name, ahead of tess4j's bundled copies.
         // tess4j's static initializer extracts its own (older) leptonica to
@@ -203,7 +221,7 @@ public final class Legerix {
      * has not been called yet.
      *
      * @return the absolute path to the {@code tessdata} directory containing
-     *         {@code eng.traineddata}
+     *         the bundled {@code *.traineddata} files (see {@link #BUNDLED_LANGUAGES})
      * @throws IllegalStateException if natives have not been loaded yet and
      *         the implicit {@link #loadNatives()} call fails (the underlying
      *         {@link IOException} is wrapped as cause)

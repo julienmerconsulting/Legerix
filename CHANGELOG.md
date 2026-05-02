@@ -7,7 +7,41 @@ in the form `<tesseract-version>-<build>`.
 
 ## [Unreleased]
 
+## [5.5.0-2] - TBD
+
 ### Added
+- Four additional bundled `tessdata_fast` language models alongside English:
+  French (`fra`), Spanish (`spa`), Simplified Chinese (`chi_sim`) and Hindi
+  (`hin`). Together with `eng` they cover roughly 80% of the world's
+  population by primary spoken language.
+- `Legerix.BUNDLED_LANGUAGES` public constant exposing the bundled language
+  codes for programmatic discovery.
+
+### Changed
+- Tesseract upstream version unchanged (still 5.5.0). This is a payload-only
+  bump: same natives, expanded `tessdata` folder.
+- `scripts/fetch-traineddata.sh` now fetches the five bundled languages
+  rather than English alone.
+- README "Languages / tessdata" section rewritten: documents the bundled
+  set, points to `tessdata_best` for accuracy-sensitive consumers, retains
+  the pattern for adding extra languages on top of the bundle.
+
+### Notes
+- Jar size grows from ~21 MB to ~30 MB (still well under typical native
+  bundle thresholds).
+
+## [5.5.0-1] - 2026-05-01
+
+First release. Tesseract 5.5.0 + Leptonica 1.87.0 bundled, English-only
+`tessdata_fast` model.
+
+Why leptonica 1.87.0 and not 1.85.0: tesseract 5.5.0 calls
+`pixFindBaselinesGen` which was added to leptonica between 1.85 and
+1.86. Building against 1.85.0 produces a runtime
+`undefined symbol: pixFindBaselinesGen` error — the same class of
+mismatch that originally motivated Legerix.
+
+### Initial scope
 - Initial repo skeleton modeled on `julienmerconsulting/Apertix`.
 - 7-job CI matrix: Linux x86\_64 + aarch64 (modern + legacy glibc tiers),
   macOS x86\_64 + aarch64, Windows x86\_64.
@@ -20,13 +54,3 @@ in the form `<tesseract-version>-<build>`.
 - Maven Central release profile (`central-publishing-maven-plugin` + GPG).
 - MIT license, NOTICE, THIRD-PARTY.txt covering Tesseract (Apache 2.0),
   Leptonica (BSD-2), eng.traineddata (Apache 2.0).
-
-## [5.5.0-1] - TBD
-
-First release. Tesseract 5.5.0 + Leptonica 1.87.0 bundled.
-
-Why leptonica 1.87.0 and not 1.85.0: tesseract 5.5.0 calls
-`pixFindBaselinesGen` which was added to leptonica between 1.85 and
-1.86. Building against 1.85.0 produces a runtime
-`undefined symbol: pixFindBaselinesGen` error — the same class of
-mismatch that originally motivated Legerix.
