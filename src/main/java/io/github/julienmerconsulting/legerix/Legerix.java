@@ -6,6 +6,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,10 +15,13 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -139,6 +144,12 @@ public final class Legerix {
      * automatically by inspecting {@code ldd --version}. On macOS and Windows
      * the only available variant is used.
      *
+     * <p>On Windows, every DLL shipped under {@code win32-x86-64/} is
+     * extracted, not just the canonical pair: vcpkg-built tesseract has
+     * transitive runtime dependencies on libpng, libtiff, libjpeg-turbo,
+     * libwebp, openjp2, zlib, libcurl, libarchive, etc., and a single missing
+     * one triggers {@link UnsatisfiedLinkError} at load time.
+     *
      * <p>The lightweight {@code tessdata_fast} language models shipped in the
      * artifact (see {@link #BUNDLED_LANGUAGES}) are also extracted alongside
      * the natives so that {@link #getTessdataPath()} can be passed directly
@@ -167,6 +178,13 @@ public final class Legerix {
         for (final String lib : librariesFor(os)) {
             extractIfMissing(resourceDir + "/" + lib, target.resolve(lib));
         }
+
+        // Extract every other regular file under the platform's resource dir.
+        // On Linux/macOS this is a no-op (only the canonical pair lives there).
+        // On Windows it picks up the ~10 transitive vcpkg DLLs (libpng,
+        // libtiff, libjpeg-turbo, libwebp, openjp2, zlib, libcurl,
+        // libarchive, ...) that tesseract.dll needs at runtime.
+        extractAllFromResourceDir(resourceDir, target);
 
         // tessdata: bundled lightweight (tessdata_fast) language models covering
         // ~80% of the world population. Consumers wanting other languages can
@@ -379,6 +397,60 @@ public final class Legerix {
                 throw new IOException("Resource not found in classpath: " + resource);
             }
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    /**
+     * Extract every regular file directly under the given classpath resource
+     * directory into {@code target}, idempotent (skips files already on disk).
+     * Transparently handles JAR mode (running from a packaged jar) and
+     * exploded-classpath mode (running from {@code target/classes} in dev/test).
+     */
+    private static void extractAllFromResourceDir(final String resourceDir, final Path target) throws IOException {
+        final URL location = Legerix.class.getProtectionDomain().getCodeSource().getLocation();
+        if (location == null) {
+            // No code source (some custom classloaders): librariesFor() already
+            // handled the canonical names, nothing more we can do.
+            return;
+        }
+        final Path codeSourcePath;
+        try {
+            codeSourcePath = Paths.get(location.toURI());
+        } catch (final URISyntaxException e) {
+            throw new IOException("Cannot resolve code source URL: " + location, e);
+        }
+        if (Files.isDirectory(codeSourcePath)) {
+            // Exploded classpath (dev/test from target/classes).
+            final Path dir = codeSourcePath.resolve(resourceDir);
+            if (!Files.isDirectory(dir)) return;
+            try (java.util.stream.Stream<Path> stream = Files.list(dir)) {
+                final java.util.Iterator<Path> it = stream.iterator();
+                while (it.hasNext()) {
+                    final Path entry = it.next();
+                    if (Files.isRegularFile(entry)) {
+                        final Path out = target.resolve(entry.getFileName());
+                        if (!Files.exists(out)) {
+                            Files.copy(entry, out, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    }
+                }
+            }
+            return;
+        }
+        // Packaged JAR: enumerate entries under the resource prefix.
+        try (JarFile jar = new JarFile(codeSourcePath.toFile())) {
+            final String prefix = resourceDir + "/";
+            final Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                final JarEntry je = entries.nextElement();
+                if (je.isDirectory()) continue;
+                final String name = je.getName();
+                if (!name.startsWith(prefix)) continue;
+                final String tail = name.substring(prefix.length());
+                // Only immediate children, no nested subdirs.
+                if (tail.isEmpty() || tail.contains("/")) continue;
+                extractIfMissing(name, target.resolve(tail));
+            }
         }
     }
 

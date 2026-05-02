@@ -7,28 +7,45 @@ in the form `<tesseract-version>-<build>`.
 
 ## [Unreleased]
 
-## [5.5.0-2] - TBD
+## [5.5.0-3] - TBD
 
 ### Added
-- Four additional bundled `tessdata_fast` language models alongside English:
-  French (`fra`), Spanish (`spa`), Simplified Chinese (`chi_sim`) and Hindi
-  (`hin`). Together with `eng` they cover roughly 80% of the world's
-  population by primary spoken language.
-- `Legerix.BUNDLED_LANGUAGES` public constant exposing the bundled language
-  codes for programmatic discovery.
+- Windows: bundle the full set of vcpkg-built transitive DLLs (libpng,
+  libtiff, libjpeg-turbo, libwebp, openjp2, zlib, libcurl, libarchive,
+  etc.) inside the jar at `win32-x86-64/`, alongside `tesseract55.dll`
+  and `leptonica-1.87.0.dll`. Previous releases shipped only the two
+  canonical DLLs and end users hit `UnsatisfiedLinkError` on Windows the
+  first time tesseract.dll asked the loader to resolve a transitive
+  codec/runtime import.
+- `Legerix.loadNatives()` now extracts every regular file under the
+  platform's resource directory, not just the two canonical names from
+  `librariesFor()`. Linux/macOS no-op (resource dirs contain only the
+  canonical pair); Windows picks up the codec/runtime DLLs automatically.
+  Implemented via JarFile enumeration in JAR mode and `Files.list` in
+  exploded-classpath mode.
 
 ### Changed
-- Tesseract upstream version unchanged (still 5.5.0). This is a payload-only
-  bump: same natives, expanded `tessdata` folder.
-- `scripts/fetch-traineddata.sh` now fetches the five bundled languages
-  rather than English alone.
-- README "Languages / tessdata" section rewritten: documents the bundled
-  set, points to `tessdata_best` for accuracy-sensitive consumers, retains
-  the pattern for adding extra languages on top of the bundle.
+- Windows native packaging in CI: instead of two flat DLL release assets
+  (`tesseract-win-x86-64.dll`, `leptonica-win-x86-64.dll`), we ship a
+  single `legerix-win-x86-64.zip` asset containing every DLL from the
+  vcpkg `installed/x64-windows/bin/` directory. Re-publication workflows
+  (`publish-maven-central.yml`, `verify-release.yml`) `unzip` it back
+  into the resource layout before `mvn deploy/verify`.
 
 ### Notes
-- Jar size grows from ~21 MB to ~30 MB (still well under typical native
-  bundle thresholds).
+- 5.5.0-2 was abandoned mid-build due to a CI permission issue: the
+  multilang push via the GitHub API stripped the executable bit on
+  `scripts/fetch-traineddata.sh`, breaking the `build_dist` job before
+  any release was cut. Workflows now invoke shell scripts via
+  `bash ./...` to be mode-agnostic. The multilang tessdata payload
+  (fra, spa, chi_sim, hin alongside eng) ships in 5.5.0-3.
+
+## [5.5.0-2] - never shipped (CI failure mid-build)
+
+Intended payload: 4 additional bundled `tessdata_fast` languages (`fra`,
+`spa`, `chi_sim`, `hin`) + `Legerix.BUNDLED_LANGUAGES` constant.
+Superseded by 5.5.0-3 which carries the same payload plus the Windows
+transitive DLL fix.
 
 ## [5.5.0-1] - 2026-05-01
 
