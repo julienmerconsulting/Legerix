@@ -2,12 +2,21 @@
 # Download lightweight traineddata models from the upstream tessdata_fast repo
 # and stage them under src/main/resources/tessdata/.
 #
-# Bundled languages (covers ~80% of the world population, ~12 MB total):
+# Bundled languages (~31 MB total):
 #   eng     — English
 #   fra     — French
 #   spa     — Spanish
 #   chi_sim — Simplified Chinese
 #   hin     — Hindi
+#   rus     — Russian
+#   por     — Portuguese
+#   deu     — German
+#   jpn     — Japanese
+#   chi_tra — Traditional Chinese
+#   ara     — Arabic
+#   kor     — Korean
+#   ita     — Italian
+#   vie     — Vietnamese
 #
 # Usage:  fetch-traineddata.sh [output-dir]
 # Default output dir: src/main/resources/tessdata
@@ -16,7 +25,7 @@ set -euo pipefail
 
 OUTDIR="${1:-src/main/resources/tessdata}"
 BASE_URL="https://github.com/tesseract-ocr/tessdata_fast/raw/main"
-LANGS=(eng fra spa chi_sim hin)
+LANGS=(eng fra spa chi_sim hin rus por deu jpn chi_tra ara kor ita vie)
 
 mkdir -p "$OUTDIR"
 

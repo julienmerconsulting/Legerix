@@ -123,13 +123,17 @@ public final class Legerix {
 
     /**
      * Lightweight Tesseract {@code tessdata_fast} language models bundled in
-     * the artifact. Covers approximately 80% of the world population by
-     * primary spoken language: English, French, Spanish, Simplified Chinese
-     * and Hindi. Consumers wanting other languages should drop additional
-     * {@code *.traineddata} files alongside these in {@link #getTessdataPath()}.
+     * the artifact (~31 MB total): English, French, Spanish, Simplified
+     * Chinese, Hindi, Russian, Portuguese, German, Japanese, Traditional
+     * Chinese, Arabic, Korean, Italian and Vietnamese. Consumers wanting
+     * other languages should drop additional {@code *.traineddata} files
+     * alongside these in {@link #getTessdataPath()}.
      */
     public static final List<String> BUNDLED_LANGUAGES =
-            Collections.unmodifiableList(Arrays.asList("eng", "fra", "spa", "chi_sim", "hin"));
+            Collections.unmodifiableList(Arrays.asList(
+                    "eng", "fra", "spa", "chi_sim", "hin",
+                    "rus", "por", "deu", "jpn", "chi_tra",
+                    "ara", "kor", "ita", "vie"));
 
     /** Cached, idempotent extraction directory. */
     private static volatile Path extractionDir;

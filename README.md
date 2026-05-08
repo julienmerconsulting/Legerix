@@ -36,7 +36,7 @@ upstream release resets the build to `1`.
 | `darwin/`                             | macOS x86\_64                          |
 | `darwin-aarch64/`                     | macOS Apple Silicon                    |
 | `win32-x86-64/`                       | Windows x86\_64 (vcpkg toolchain)      |
-| `tessdata/*.traineddata`              | 5 bundled fast models, ~12 MB total (see below) |
+| `tessdata/*.traineddata`              | 14 bundled fast models, ~31 MB total (see below) |
 | `io/github/julienmerconsulting/legerix/Legerix.class` | Java loader               |
 
 Each platform directory contains both `libtesseract` and `libleptonica`.
@@ -71,19 +71,28 @@ String text = tess.doOCR(image);
 
 ## Languages / tessdata
 
-Five lightweight `tessdata_fast` language models are bundled in the jar
-(~12 MB total), chosen to cover roughly 80% of the world's population by
-primary spoken language:
+Fourteen lightweight `tessdata_fast` language models are bundled in the jar
+(~31 MB total), covering the most common written languages across Europe,
+the Americas, East Asia, the Middle East and South Asia:
 
-| Code      | Language            | Approx. size |
-| --------- | ------------------- | ------------ |
-| `eng`     | English             | ~4 MB        |
-| `fra`     | French              | ~1.1 MB      |
-| `spa`     | Spanish             | ~1 MB        |
-| `chi_sim` | Simplified Chinese  | ~3 MB        |
-| `hin`     | Hindi               | ~3.2 MB      |
+| Code      | Language             | Approx. size |
+| --------- | -------------------- | ------------ |
+| `eng`     | English              | ~4 MB        |
+| `fra`     | French               | ~1.1 MB      |
+| `spa`     | Spanish              | ~1 MB        |
+| `chi_sim` | Simplified Chinese   | ~3 MB        |
+| `hin`     | Hindi                | ~3.2 MB      |
+| `rus`     | Russian              | ~2 MB        |
+| `por`     | Portuguese           | ~1 MB        |
+| `deu`     | German               | ~3 MB        |
+| `jpn`     | Japanese             | ~3 MB        |
+| `chi_tra` | Traditional Chinese  | ~2 MB        |
+| `ara`     | Arabic               | ~1.5 MB      |
+| `kor`     | Korean               | ~2 MB        |
+| `ita`     | Italian              | ~1 MB        |
+| `vie`     | Vietnamese           | ~1 MB        |
 
-All five are `tessdata_fast` (LSTM-only, optimized for speed) — the same
+All are `tessdata_fast` (LSTM-only, optimized for speed) — the same
 trade-off Tesseract makes for its mobile / embedded targets. For higher
 accuracy at the cost of size and latency, swap them out with
 `tessdata_best` from upstream.
